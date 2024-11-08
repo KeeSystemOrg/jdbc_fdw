@@ -245,30 +245,50 @@ jdbc_classify_conditions(PlannerInfo *root,
 }
 
 /*
- * Deparse LIMIT/OFFSET clause.
+ * Modify the LIMIT/OFFSET clause deparse logic to use the configured syntax
  */
 static void
-jdbc_append_limit_clause(deparse_expr_cxt *context)
+jdbc_deparse_limit(StringInfo buf, PlannerInfo *root, 
+                  jdbcFdwRelationInfo *fpinfo,
+                  List **params_list)
 {
-	PlannerInfo *root = context->root;
-	StringInfo	buf = context->buf;
-	int			nestlevel;
+    Query *parse = root->parse;
 
-	/* Make sure any constants in the exprs are printed portably */
-	nestlevel = jdbc_set_transmission_modes();
+    /* Add OFFSET if present */
+    if (parse->limitOffset)
+    {
+        if (fpinfo->use_offset_rows_syntax)
+            appendStringInfo(buf, " OFFSET %s ROWS",
+                           jdbc_deparse_expression(parse->limitOffset,
+                                                root->parse->rtable,
+                                                params_list,
+                                                fpinfo->q_char));
+        else
+            appendStringInfo(buf, " OFFSET %s",
+                           jdbc_deparse_expression(parse->limitOffset,
+                                                root->parse->rtable,
+                                                params_list,
+                                                fpinfo->q_char));
+    }
 
-	if (root->parse->limitCount)
-	{
-		appendStringInfoString(buf, " LIMIT ");
-		jdbc_deparse_expr((Expr *) root->parse->limitCount, context);
-	}
-	if (root->parse->limitOffset)
-	{
-		appendStringInfoString(buf, " OFFSET ");
-		jdbc_deparse_expr((Expr *) root->parse->limitOffset, context);
-	}
-
-	jdbc_reset_transmission_modes(nestlevel);
+    /* Add LIMIT if present */
+    if (parse->limitCount)
+    {
+        if (fpinfo->use_fetch_first_syntax)
+        {
+            appendStringInfo(buf, " FETCH FIRST %s ROWS ONLY",
+                           jdbc_deparse_expression(parse->limitCount,
+                                                root->parse->rtable,
+                                                params_list,
+                                                fpinfo->q_char));
+        }
+        else
+            appendStringInfo(buf, " LIMIT %s",
+                           jdbc_deparse_expression(parse->limitCount,
+                                                root->parse->rtable,
+                                                params_list,
+                                                fpinfo->q_char));
+    }
 }
 
 /*

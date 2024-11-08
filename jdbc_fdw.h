@@ -112,6 +112,10 @@ typedef struct jdbcFdwRelationInfo
 
 	/* Function pushdown surppot in target list */
 	bool		is_tlist_func_pushdown;
+
+	/* Options for LIMIT/OFFSET syntax */
+	bool        use_fetch_first_syntax;    /* Use "FETCH FIRST x ROWS ONLY" instead of LIMIT */
+	bool        use_offset_rows_syntax;    /* Use "OFFSET x ROWS" instead of OFFSET */
 }			jdbcFdwRelationInfo;
 
 

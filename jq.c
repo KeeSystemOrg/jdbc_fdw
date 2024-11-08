@@ -586,6 +586,12 @@ jdbc_get_server_options(JserverOptions * opts, const ForeignServer *f_server, co
 		{
 			opts->url = defGetString(def);
 		}
+
+		if (strcmp(def->defname, "use_fetch_first_syntax") == 0)
+			fpinfo->use_fetch_first_syntax = defGetBoolean(def);
+
+		if (strcmp(def->defname, "use_offset_rows_syntax") == 0)
+			fpinfo->use_offset_rows_syntax = defGetBoolean(def);
 	}
 }
 
@@ -1481,7 +1487,7 @@ jq_get_exception()
 		exceptionString = jdbc_convert_string_to_cstring((jobject) exceptionMsg);
 		err_msg = pstrdup(exceptionString);
 		ereport(DEBUG3, (errmsg("%s", err_msg)));
-		ereport(ERROR, (errmsg("remote server returned an error")));
+		ereport(ERROR, (errmsg("remote server returned an error: %s", err_msg)));
 	}
 	return;
 }
